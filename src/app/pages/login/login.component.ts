@@ -1,18 +1,19 @@
-import { Component } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Component } from "@angular/core";
+import { FormBuilder, FormControl, FormGroup, Validators } from "@angular/forms";
+import { Router } from "@angular/router";
 import {
   AuthenticationDetails,
   CognitoUser,
   CognitoUserPool,
   CognitoUserSession
-} from 'amazon-cognito-identity-js';
-import { environment } from 'src/environments/environment';
+} from "amazon-cognito-identity-js";
+import { environment } from "src/environments/environment";
+import { SnackbarService } from "src/app/core/services/snackbar.service";
 
 @Component({
-  selector: 'app-login',
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss']
+  selector: "app-login",
+  templateUrl: "./login.component.html",
+  styleUrls: ["./login.component.scss"]
 })
 export class LoginComponent {
   loginForm!: FormGroup;
@@ -20,14 +21,14 @@ export class LoginComponent {
   confirmationStep = false;
   cognitoUser!: CognitoUser;
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  constructor(private fb: FormBuilder, private router: Router, private snackbar: SnackbarService) {
     this.loginForm = this.fb.group({
-      email: new FormControl('', [Validators.required, Validators.email]),
-      password: new FormControl('', [Validators.required, Validators.minLength(8)])
+      email: new FormControl("", [Validators.required, Validators.email]),
+      password: new FormControl("", [Validators.required, Validators.minLength(8)])
     });
     this.confirmationForm = this.fb.group({
-      code: new FormControl('', [Validators.required, Validators.minLength(6)]),
-      newPassword: new FormControl('', [Validators.required, Validators.minLength(8)])
+      code: new FormControl("", [Validators.required, Validators.minLength(6)]),
+      newPassword: new FormControl("", [Validators.required, Validators.minLength(8)])
     });
   }
 
@@ -44,28 +45,32 @@ export class LoginComponent {
     this.cognitoUser = new CognitoUser(userData);
     this.cognitoUser.authenticateUser(authenticationDetails, {
       onSuccess: (session: CognitoUserSession) => {
-        this.cognitoUser.getUserAttributes((err: any, result: any) => {
-          if (err) {
-            alert(err.message || JSON.stringify(err));
-            return;
-          }
-          const userDetails = {} as any;
-          for (let i = 0; i < result.length; i++) {
-            userDetails[result[i].getName().replace('custom:', '')] = result[i].getValue();
-          }
-          localStorage.setItem('userDetails', JSON.stringify(userDetails));
+        return new Promise((resolve, reject) => {
+          this.cognitoUser.getUserAttributes((err: any, result: any) => {
+            if (err) {
+              this.snackbar.show(err.message || JSON.stringify(err), "danger");
+              reject(err.message || JSON.stringify(err));
+              return;
+            }
+            const userDetails = {} as any;
+            for (let i = 0; i < result.length; i++) {
+              userDetails[result[i].getName().replace("custom:", "")] = result[i].getValue();
+            }
+            localStorage.setItem("userDetails", JSON.stringify(userDetails));
+            resolve("Authenticated");
+            this.router.navigate(["home"]);
+          });
         });
-        this.router.navigate(['home']);
       },
       onFailure: (err) => {
-        alert(err.message || JSON.stringify(err));
+        this.snackbar.show(err.message || JSON.stringify(err), "danger");
       }
     });
   }
 
   forgotPassword() {
     if (!this.loginForm.value.email) {
-      alert('Please enter your e-mail address first');
+      this.snackbar.show("Please enter your e-mail address first", "warning");
       return;
     }
     var userPool = new CognitoUserPool({
@@ -76,11 +81,14 @@ export class LoginComponent {
     this.cognitoUser = new CognitoUser(userData);
     this.cognitoUser.forgotPassword({
       onSuccess: (result) => {
-        alert('Please enter the confirmation code from your e-mail and the new desired password.');
+        this.snackbar.show(
+          "Please enter the confirmation code from your e-mail and the new desired password.",
+          "success"
+        );
         this.confirmationStep = true;
       },
       onFailure: (err) => {
-        alert(err.message || JSON.stringify(err));
+        this.snackbar.show(err.message || JSON.stringify(err), "danger");
       }
     });
   }
@@ -91,11 +99,11 @@ export class LoginComponent {
       this.confirmationForm.value.newPassword,
       {
         onSuccess: (result) => {
-          alert('Your password is updated.');
+          this.snackbar.show("Your password is updated.", "success");
           this.confirmationStep = false;
         },
         onFailure: (err) => {
-          alert(err.message || JSON.stringify(err));
+          this.snackbar.show(err.message || JSON.stringify(err), "danger");
         }
       }
     );
