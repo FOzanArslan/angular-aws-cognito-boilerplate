@@ -1,29 +1,35 @@
-import { Injectable } from '@angular/core';
-import { CognitoUserPool, CognitoUserSession } from 'amazon-cognito-identity-js';
-import { environment } from 'src/environments/environment';
+import { Injectable } from "@angular/core";
+import { CognitoUserPool, CognitoUserSession } from "amazon-cognito-identity-js";
+import { environment } from "src/environments/environment";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root"
 })
 export class IsLoggedInService {
-  isLoggedIn() {
-    let isAuth = false;
+  isLoggedIn(): Promise<boolean> {
     let poolData = {
       UserPoolId: environment.cognitoUserPoolId,
       ClientId: environment.cognitoAppClientId
     };
     let userPool = new CognitoUserPool(poolData);
     let cognitoUser = userPool.getCurrentUser();
-
-    if (cognitoUser != null) {
+    return new Promise((resolve, reject) => {
+      if (!cognitoUser) {
+        reject("Could not retrieve current user");
+        return;
+      }
       cognitoUser.getSession((err: any, session: CognitoUserSession) => {
         if (err) {
-          alert(err.message || JSON.stringify(err));
+          reject(err.message || JSON.stringify(err));
+          return;
+        }
+        const res = session.isValid();
+        if (res) {
+          resolve(res);
         } else {
-          isAuth = session.isValid();
+          reject("Session is not valid");
         }
       });
-    }
-    return isAuth;
+    });
   }
 }
