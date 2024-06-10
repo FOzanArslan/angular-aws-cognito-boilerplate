@@ -1,0 +1,10 @@
+@import "/src/scss/variables.scss";
+iframe {
+  position: fixed;
+  right: 10px;
+  bottom: 75px;
+  width: 400px;
+  height: 500px;
+  z-index: 20;
+  border: none !important;
+}

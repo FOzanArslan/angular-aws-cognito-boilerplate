@@ -23,7 +23,7 @@ export class LoginComponent {
 
   constructor(private fb: FormBuilder, private router: Router, private snackbar: SnackbarService) {
     this.loginForm = this.fb.group({
-      email: new FormControl("", [Validators.required, Validators.email]),
+      email: new FormControl("", [Validators.required]),
       password: new FormControl("", [Validators.required, Validators.minLength(8)])
     });
     this.confirmationForm = this.fb.group({
